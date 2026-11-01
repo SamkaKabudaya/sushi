@@ -37,7 +37,7 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 system-ui
   <div class="field">
     <label for="who">Телефон або @username клієнта</label>
     <input id="who" placeholder="+380 67 123 45 67 або @ivan" autocomplete="off">
-    <div class="hint">WhatsApp — за номером, Telegram — за @username. Viber завжди відкриває вибір контакту.</div>
+    <div class="hint">WhatsApp — за номером, Telegram — за @username. Viber: у меню «Поділитися» оберіть Viber, потім клієнта.</div>
     <div class="err" id="err"></div>
   </div>
 </div>
@@ -48,7 +48,7 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 system-ui
   <a class="btn vb" id="vb" aria-disabled="true">Viber</a>
 </div>
 <button class="btn copy" id="copy" aria-disabled="true">📋 Скопіювати повідомлення</button>
-<p class="hint" id="vbnote" hidden>Viber: оберіть клієнта у списку — текст уже вставлено. Повідомлення також скопійовано: якщо Viber не відкрився (на комп'ютері потрібен Viber Desktop), вставте його в чат вручну.</p>
+<p class="hint" id="vbnote" hidden>Повідомлення скопійовано. Якщо Viber не відкрився (на комп'ютері потрібен Viber Desktop) — відкрийте його і вставте текст у чат клієнта.</p>
 
 <div class="card" style="margin-top:14px"><label>Повідомлення клієнту</label><pre id="msg">—</pre></div>
 
@@ -104,8 +104,16 @@ function update() {
 }
 
 ["sum", "order", "who"].forEach(id => $(id).addEventListener("input", update));
-$("vb").addEventListener("click", () => {  // viber:// без встановленого Viber мовчить — текст хоча б у буфері, і пояснення
-  navigator.clipboard?.writeText($("msg").textContent).catch(() => {});
+$("vb").addEventListener("click", e => {
+  // Viber на Android відкидає будь-які viber:// з браузера («Request unavailable», 02.11) — системне меню «Поділитися»
+  // з готовим текстом: там обирають Viber і клієнта. Немає меню (комп'ютер) — viber:// для Viber Desktop + текст у буфері
+  const text = $("msg").textContent;
+  navigator.clipboard?.writeText(text).catch(() => {});
+  if (navigator.share) {
+    e.preventDefault();
+    navigator.share({text}).catch(() => {});
+    return;
+  }
   $("vbnote").hidden = false;
 });
 $("copy").addEventListener("click", async () => {
