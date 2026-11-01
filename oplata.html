@@ -37,7 +37,7 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 system-ui
   <div class="field">
     <label for="who">Телефон або @username клієнта</label>
     <input id="who" placeholder="+380 67 123 45 67 або @ivan" autocomplete="off">
-    <div class="hint">WhatsApp і Viber — за номером. Telegram — за @username. Без контакту відкриється вибір чату.</div>
+    <div class="hint">WhatsApp — за номером, Telegram — за @username. Viber завжди відкриває вибір контакту.</div>
     <div class="err" id="err"></div>
   </div>
 </div>
@@ -48,7 +48,7 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 system-ui
   <a class="btn vb" id="vb" aria-disabled="true">Viber</a>
 </div>
 <button class="btn copy" id="copy" aria-disabled="true">📋 Скопіювати повідомлення</button>
-<p class="hint" id="vbnote" hidden>Повідомлення скопійовано. Якщо Viber не відкрився — на цьому пристрої його немає (у Viber немає веб-версії): відкрийте сторінку на телефоні або встановіть Viber Desktop і вставте текст у чат (Ctrl+V).</p>
+<p class="hint" id="vbnote" hidden>Viber: оберіть клієнта у списку — текст уже вставлено. Повідомлення також скопійовано: якщо Viber не відкрився (на комп'ютері потрібен Viber Desktop), вставте його в чат вручну.</p>
 
 <div class="card" style="margin-top:14px"><label>Повідомлення клієнту</label><pre id="msg">—</pre></div>
 
@@ -97,9 +97,9 @@ function update() {
   // не wa.me: його переадресація псує емодзі на «�» (видно 02.11) — одразу api.whatsapp.com
   $("wa").href = `https://api.whatsapp.com/send?${who && who.phone ? `phone=${who.phone}&` : ""}text=${enc}`;
   $("wa").setAttribute("aria-disabled", who === null || (who && who.user) ? "true" : "false");
-  // Viber: за номером — чат із чернеткою (draft є не в усіх версіях — тоді лишається «Скопіювати»), без номера — вибір контакту
-  $("vb").href = who && who.phone ? `viber://chat?number=%2B${who.phone}&draft=${enc}` : `viber://forward?text=${enc}`;
-  $("vb").setAttribute("aria-disabled", who === null || (who && who.user) ? "true" : "false");
+  // Viber: лише «переслати» з вибором контакту — viber://chat?number=… свіжий Viber на Android відкидає («Request unavailable», 02.11)
+  $("vb").href = `viber://forward?text=${enc}`;
+  $("vb").setAttribute("aria-disabled", "false");
   $("copy").setAttribute("aria-disabled", "false");
 }
 
