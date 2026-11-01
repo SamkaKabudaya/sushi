@@ -48,6 +48,7 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.5 system-ui
   <a class="btn vb" id="vb" aria-disabled="true">Viber</a>
 </div>
 <button class="btn copy" id="copy" aria-disabled="true">📋 Скопіювати повідомлення</button>
+<p class="hint" id="vbnote" hidden>Повідомлення скопійовано. Якщо Viber не відкрився — на цьому пристрої його немає (у Viber немає веб-версії): відкрийте сторінку на телефоні або встановіть Viber Desktop і вставте текст у чат (Ctrl+V).</p>
 
 <div class="card" style="margin-top:14px"><label>Повідомлення клієнту</label><pre id="msg">—</pre></div>
 
@@ -103,6 +104,10 @@ function update() {
 }
 
 ["sum", "order", "who"].forEach(id => $(id).addEventListener("input", update));
+$("vb").addEventListener("click", () => {  // viber:// без встановленого Viber мовчить — текст хоча б у буфері, і пояснення
+  navigator.clipboard?.writeText($("msg").textContent).catch(() => {});
+  $("vbnote").hidden = false;
+});
 $("copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("msg").textContent); $("copy").textContent = "✅ Скопійовано"; }
   catch { $("copy").textContent = "Виділіть текст нижче і скопіюйте"; }
