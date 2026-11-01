@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Оплата · Суші Мінімал</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#14213d;--muted:#5c6b82;--line:#d9e1ec;--accent:#1f8fd6;--ok:#1d9a5b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1622;--card:#182233;--text:#e8eef7;--muted:#97a6bd;--line:#2a3850;--accent:#4aa3df}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:460px;margin:0 auto;padding:28px 16px 40px}
+.shop{margin:0;font-size:15px;color:var(--muted);font-weight:600}
+h1{margin:4px 0 2px;font-size:34px;line-height:1.1}
+.order{margin:0 0 22px;color:var(--muted)}
+.pay{display:block;padding:18px;border-radius:14px;background:var(--accent);color:#fff;text-align:center;font-size:20px;font-weight:700;text-decoration:none}
+.pay:focus-visible{outline:3px solid var(--text);outline-offset:3px}
+.note{margin:10px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.qr{display:none;text-align:center;background:#fff;border-radius:14px;padding:20px;margin-bottom:12px}
+.qr canvas,.qr img{margin:0 auto;width:240px;height:240px}
+.qr p{margin:12px 0 0;color:#14213d;font-size:14px}
+@media (hover:hover) and (pointer:fine){.qr{display:block}.mobile{display:none}}  /* комп'ютер: QR для телефона */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 16px;margin-top:22px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row div{flex:1;min-width:0}
+.row small{display:block;font-size:12px;color:var(--muted)}
+.row b{display:block;font-weight:600;overflow-wrap:anywhere}
+.row button{flex:none;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer}
+.row button.done{color:var(--ok);border-color:var(--ok)}
+.bad{text-align:center;padding-top:60px;color:var(--muted)}
+</style></head>
+<body><main id="app"></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// Реквізити ФОП. Посилання НБУ формат 002 — перевірено 02.11.2026 у застосунку ПУМБ. Адреса сторінки: pay.html?<сума>[-<№ замовлення>]
+const FOP = {
+  shop: "Суші Мінімал",
+  name: "ФОП Шадловська Інна Володимирівна",
+  iban: "UA133348510000000026009363872",
+  code: "3863807221",
+  purpose: "оплата за суші",
+};
+
+function nbuLink(sum, purpose) {
+  const amount = "UAH" + (Number.isInteger(sum) ? String(sum) : sum.toFixed(2));
+  const data = ["BCD", "002", "1", "UCT", "", FOP.name, FOP.iban, amount, FOP.code, "", "", purpose, ""].join("\n");
+  let bin = "";
+  new TextEncoder().encode(data).forEach(b => bin += String.fromCharCode(b));
+  return "https://qr.bank.gov.ua/" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const m = decodeURIComponent(location.search.slice(1)).match(/^(\d{1,6}(?:\.\d{1,2})?)(?:-([\w-]{1,20}))?$/);
+const app = document.getElementById("app");
+
+if (!m || !(Number(m[1]) > 0)) {
+  app.innerHTML = `<p class="bad">Посилання на оплату неповне.<br>Попросіть менеджера ${esc(FOP.shop)} надіслати його ще раз.</p>`;
+} else {
+  const sum = Number(m[1]), order = m[2] || "";
+  const purpose = FOP.purpose + (order ? `, замовлення ${order}` : "");
+  const link = nbuLink(sum, purpose);
+  const shown = sum.toLocaleString("uk-UA", {minimumFractionDigits: Number.isInteger(sum) ? 0 : 2});
+  const row = (label, value, copy = value) =>
+    `<div class="row"><div><small>${label}</small><b>${esc(value)}</b></div><button data-copy="${esc(copy)}">Копіювати</button></div>`;
+  app.innerHTML = `
+    <p class="shop">🍣 ${esc(FOP.shop)}</p>
+    <h1>${esc(shown)} грн</h1>
+    <p class="order">${order ? `Замовлення №${esc(order)}` : "До сплати"}</p>
+    <div class="qr"><div id="qr"></div><p>Наведіть камеру телефона або сканер у застосунку банку</p></div>
+    <div class="mobile">
+      <a class="pay" href="${esc(link)}">Оплатити ${esc(shown)} грн</a>
+      <p class="note">Відкриється ваш банк із заповненими реквізитами і сумою — лишиться підтвердити</p>
+    </div>
+    <div class="card">
+      ${row("Отримувач", FOP.name)}
+      ${row("IBAN", FOP.iban)}
+      ${row("ІПН / ЄДРПОУ", FOP.code)}
+      ${row("Сума", shown + " грн", String(sum))}
+      ${row("Призначення", purpose)}
+    </div>`;
+  if (window.QRCode) new QRCode(document.getElementById("qr"), {text: link, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M});
+  app.addEventListener("click", async e => {
+    const b = e.target.closest("button[data-copy]");
+    if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "✓"; b.classList.add("done"); }
+    catch { b.textContent = "—"; }
+    setTimeout(() => { b.textContent = "Копіювати"; b.classList.remove("done"); }, 1500);
+  });
+}
+</script>
+</body></html>
